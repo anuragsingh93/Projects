@@ -1,0 +1,266 @@
+package com.glassbeam
+import com.typesafe.config.ConfigFactory
+import scala.io.Source
+import scala.sys.SystemProperties
+import scala.util.Random
+import java.io._
+import scala.sys.process._
+object ModifyFinal {
+  lazy val sp=new SystemProperties()
+  lazy val userHome =sp.get("user.dir").get
+  lazy val appConf : String = userHome + File.separator + "conf" + File.separator + "App.conf"
+  lazy val config = ConfigFactory.parseFileAnySyntax(new File(appConf.toString))
+  val custName=config.getString("custName").toLowerCase
+  val custNew=config.getString("custNew")
+  val tPath=config.getString("temp_bundles_path")
+  val fnlPath=config.getString("final_bundles_path")
+  val mapToRplace = Map("(" -> "(", ")" -> ")", "+" -> "+", "/" -> "/", "%" -> "%", "@" -> "@", ">" -> ">", "<" -> ">", " " -> " ", "." -> ".", "32" -> "43", "0" -> "7", "1" -> "6", "2" -> "9", "3" -> "0", "4" -> "6", "5" -> "7", "6" -> "8", "7" -> "9", "8" -> "0", "9" -> "1", "a" -> "z", "b" -> "x", "c" -> "y", "d" -> "f", "e" -> "g", "f" -> "h", "g" -> "i", "h" -> "j", "i" -> "k", "j" -> "l", "k" -> "m", "l" -> "n", "m" -> "o", "n" -> "t", "o" -> "q", "p" -> "r", "q" -> "s", "r" -> "t", "s" -> "u", "t" -> "v", "u" -> "w", "v" -> "x", "w" -> "y", "x" -> "z", "y" -> "a", "z" -> "b", ":" -> ":", "-" -> "-","A" -> "Z", "B" -> "x", "C" -> "Y", "D" -> "F", "E" -> "G", "F" -> "H", "G" -> "I", "H" -> "J", "I" -> "K", "J" -> "L", "K" -> "M", "L" -> "N", "M" -> "O", "N" -> "t", "O" -> "Q", "P" -> "R", "Q" -> "S", "R" -> "t", "S" -> "U", "T" -> "V", "U" -> "W", "V" -> "X", "W" -> "Y", "X" -> "Z", "Y" -> "A", "Z" -> "B", ":" -> ":", "\"" -> "\"", "," -> ",", "_" -> "_")
+
+  def readGrammar(bundle:String)  {
+
+    val dirName = """/home/anurags/Customers/GE/GE_test/UW-BlackImgArea"""
+    var fpList = List[String]()
+    val filePattern = """\s*FILEPATTERN\s+(\S+)\s*""".r
+
+    val gpath=config.getString("grammar_path")
+
+    println(gpath)
+      for (line <- Source.fromFile(s"$gpath").getLines) {
+        line match {
+          case filePattern(g1) =>
+            val filePattern = g1.stripPrefix("/").stripSuffix("/").trim.split("""\|""").toList
+            fpList = filePattern ::: fpList
+          case _ =>
+        }
+      }
+      var techpth=""
+      for(fp <-fpList){
+        println(fp)
+        var fpp=fp
+        if(fp.contains("extensibility")){
+          fpp=fpp.replaceAll("extensibility","")
+          fpp=fpp.replaceAll("""\\\.""","")
+          fpp=fpp.replaceAll("log","")
+          fpp=fpp+".*"
+          println(fpp)
+        }
+        val lfile=Process(s"""find $tPath -regex $fpp""")
+        lfile.!
+        //println(lfile.!!)
+        if(lfile.!!.trim.nonEmpty) {
+          if(lfile.!!.contains("tech-support")){
+		techpath=lfile.!!.trim
+	  }
+           var pth=lfile.!!.trim
+		
+          callToModify(pth)
+          
+          
+          //removeAll(tPath)
+        }
+
+      }
+	var sysId=replaceInPath(techpath)
+	createTar(sysId)
+    }
+
+    /*def sourceFilesAtExtr(baseDir: String, ft: String): Stream[String] =
+      {
+
+        var ftemp = ".*" + ft + ".*"
+        var cmd = Seq("find", baseDir, "-type", "f", "-regextype", "sed", "-regex", ftemp)
+        cmd.lines
+
+      }
+    //lst = lst.distinct
+    for (lstTemp <- tempFile) {
+      var x = sourceFilesAtExtr(dirName, lstTemp.toString)
+      for (y <- x) {
+        var path: Path = Paths.get(y)
+        callToModified(path.toString)
+      }
+    }*/
+
+    def callToModify(path: String) = {
+
+      val parent=new File(path).getParent
+      val nPath=parent+File.separator+"test.log"
+      val mv=Process(s"""mv $path $nPath""")
+      println(mv.!)
+      val clstrUuid = """(?i)(\s*)(clusterUuid\:\s+)(.*)""".r
+      val nodeId = """(?i)(.*)(for\s+[Nn]ode\:\s*)(\S+)(\(.*)?""".r
+      val storvisorRp = """.*[Ss]torvisor.*""".r
+      val repSpring = """(.*)(([sS]pringpath)|(\/springpath))(.*)""".r
+      val nodeIdInAsup = """(?i)(.*)(Node\s+disk\s+summary\:\s+)(.*)""".r
+      val versionchangeF = """(?i)(FullVersion\:\s+.*RC-[(debug)(release)]+)(.*)(\s+\(.*)""".r
+      val modelRe = """(?i)(.*[Mm]odel(\w+)?\:\s+)(.*)""".r
+      val version = """(?i)(.*)([Vv]ersion\s*\:\s*)(\S+)(\s\([^\)]+\))?""".r
+      val instUuidre = """(?i)(.*instanceUuid\:\s+)(.*)""".r
+      val manfSerial = """(\s*Manufacturing\s*Serial\s*\#\s*\:\s*)(.*)""".r
+      val id = """(?i)(.*id\:\s+)(\S+)(.*)""".r
+      val numberRe = """(?i)(.*[nN]umber\:\s+)(.*)""".r
+      val buildRc = """(?i)(.*build[\:\-]\s+1\.0\_RC\-debug\-)(.*)""".r
+      val build = """(?i)(.*build[\:\-]\s+)(\S+)(\s\([^\)]+\))?""".r
+      val node = """(.*\s+)(\w+\-\w+\-\w+\-\w+\-\w+)(\s*\-?.*)""".r
+      val siemens = """^(\w+)(\s+)(\S+)(\s+)(\S+)(\s+)(\S+)(\s+)(\d+)(.*)""".r
+
+      //For Aruba IAP
+      val patter = """(.*)(\w{2}\:\w{2}\:\w{2}\:\w{2}\:\w{2}\:\w{2})(.*)""".r
+      val ipregex = """(.*\s+|.*\:)(\d+\.\d{1,3}\.\d{1,3}\.\d{1,3})(.*)""".r
+      //val sysid = """(\s*Serial\s+Number\s*\:\s*)(.*)$""".r
+      val sysid = """(.*Serial\s*Number\s*\,\s*)(\S+)""".r
+      val keyregx = """(.*?)([a-z0-9]{30,})(.*)?""".r
+      val iprr = """(\d+)\.(\d+)\.(\d+)\.(\d+)""".r
+
+
+      //For GE
+      val prdct="""(.*PRODUCT\s*\,\s*)(\S+)""".r
+      val cname="""(.*BEP\,COMPUTERNAME\s*\,\s*)(\S+)""".r
+      val swversion="""(.*SW\s+version\s*\,\s*)(\S+)""".r
+      try {
+        //Regexex to change
+        val ipToRplace = Map("." -> ".","0" -> "2", "1" -> "1", "2" -> "2", "3" -> "5", "4" -> "3", "5" -> "4", "6" -> "8", "7" -> "9", "8" -> "6", "9" -> "7" )
+        val macToRplace = Map("0" -> "7", "1" -> "6", "2" -> "9", "3" -> "0", "4" -> "6", "5" -> "7", "6" -> "8", "7" -> "9", "8" -> "0", "9" -> "1", "a" -> "f", "b" -> "e", "c" -> "d", "d" -> "c", "e" -> "b", "f" -> "a","A" -> "F", "B" -> "E", "C" -> "D", "D" -> "C", "E" -> "B", "F" -> "A" , ":" -> ":")
+        var fileout = path
+        val writer = new PrintWriter(new BufferedWriter((new FileWriter(fileout, false))))
+        var t = Source.fromFile(nPath, "iso-8859-1")
+        var line = ""
+        for (lin <- t.getLines()) {
+          var line = lin
+          line = s"""(?i)$custName""".r.replaceAllIn(line, custNew)
+          var temp = ""
+          line match {
+            case ipregex(group, group1, group2) =>
+              var iplist = """\d+\.\d+\.\d+\.\d+""".r.findAllMatchIn(line).toList
+              for (ip <- iplist) {
+                var newip=""
+                for(chr<-ip.toString){
+                  var i = ipToRplace.getOrElse(chr.toString,chr.toString)
+                  newip=newip+i
+                }
+                line=line.replace(ip.toString,newip)
+              }
+              var maclist="""\w{2}\:\w{2}\:\w{2}\:\w{2}\:\w{2}\:\w{2}""".r.findAllMatchIn(line).toList
+              for (mac <- maclist) {
+                var newmac=""
+                for(chr<-mac.toString){
+                  var i = macToRplace.getOrElse(chr.toString,chr.toString)
+                  newmac=newmac+i
+                }
+                line=line.replace(mac.toString,newmac)
+              }
+              writer.write(line + "\n")
+            case patter(g1, g2, g3) =>
+              var maclist="""\w{2}\:\w{2}\:\w{2}\:\w{2}\:\w{2}\:\w{2}""".r.findAllMatchIn(line).toList
+              for (mac <- maclist) {
+                var newmac=""
+                for(chr<-mac.toString){
+                  var i = macToRplace.getOrElse(chr.toString,chr.toString)
+                  newmac=newmac+i
+                }
+                line=line.replace(mac.toString,newmac)
+              }
+              writer.write(line + "\n")
+              
+            case sysid(g1, g2) =>
+              var temp = ""
+              g2.foreach { x =>
+                var i = mapToRplace.getOrElse(x.toString, x.toString)
+                temp = temp + i
+              }
+              temp = g1 + temp
+              println(temp)
+              writer.write(temp + "\n")
+            case _ =>
+              writer.write(line + "\n")
+
+          }
+
+        }
+        writer.close()
+        new File(nPath).delete()
+      } catch {
+        case ex: Exception => println("an exception happened." + ex)
+      }
+
+    }
+
+    def replaceInPath(path:String): String ={
+      //
+      if(path.contains(custName)){
+        Process(s"""find $tPath -depth -iname "*$custNew*" -execdir rename 's/$custName/$custNew/gi' "{}" ;""").!
+      }
+
+      if(custName.equals("aruba")){
+        println("Before")
+        println(path)
+        val nregx="""(^.*\/)([0-9A-Za-z]*)(\_[^\/]*)(\/[^\/]+\/)\d+\-\d+\-\d+\_\d+\_\d+\_\d+\_\d+.*$""".r
+        if(path.matches("""(^.*\/)([0-9A-Za-z]*)(\_[^\/]*\/[^\/]+\/\d+\-\d+\-\d+\_\d+\_\d+\_\d+\_\d+.*$)""")){
+          println("matched "+path)
+          val nregx(g1,g2,g3,g4)= path
+          var st=new StringBuffer("")
+          for(x<-g2){
+            var i = mapToRplace.getOrElse(x.toString, x.toString)
+            st.append(i)
+          }
+          println(g2)
+          println(st)
+          val stn=st.toString.replaceAll("""^\S\S""","HW")
+          var newPath=g1+stn+g3
+          Process(s"""mkdir -p $newPath""").!
+          Process(s"""mv $g1$g2$g3$g4 $newPath""").!
+          Process(s"""rmdir $g1$g2$g3""").!
+          return stn
+        }
+      }
+      return ""
+    }
+
+    def createTar(sysid:String): Unit ={
+      //var name=new File(bundle).getName()
+      //var a=Process(s"""ls $tPath""").!!
+      val insideFolder = new java.io.File(tPath).listFiles
+      /*for(f<-insideFolder){
+        println(new File(f.toString()).getName)
+      }*/
+      //println(a)
+      //tar -cf /home/anurags/test/tempbundles/20170203.tar -C /home/anurags/test/tempbundles/ 20170203/
+      if(insideFolder.length==1) {
+        var a=new File(insideFolder.mkString("")).getName
+        println(a)
+        Process(s"""tar -cf ${tPath}${File.separator}Hiwi_${sysid}_${System.currentTimeMillis()}.tar -C $tPath/ $a""").!
+        println(s"""tar -cf ${tPath}${File.separator}Hiwi_${sysid}_${System.currentTimeMillis()}.tar -C $tPath/ $a""")
+        val tarFile = new java.io.File(tPath).listFiles.filter(_.getName.endsWith(".tar")).toList
+        println(tarFile)
+        for (af <- tarFile) {
+          Process(s"""mv $af $fnlPath/""").!
+        }
+        println(s"""mv ${tPath}${File.separator}*.tar $fnlPath/""")
+      }else{
+        println("Some bundle got stuck in temp folder")
+        System.exit(0)
+      }
+    }
+
+    def removeAll(path: String) = {
+      println("Deleting "+path)
+      try {
+        def getRecursively(f: File): Seq[File] = f.listFiles.filter(_.isDirectory).flatMap(getRecursively) ++ f.listFiles
+        getRecursively(new File(path)).foreach { f =>
+          if (!f.delete())
+            throw new RuntimeException("Failed to delete " + f.getAbsolutePath)
+        }
+
+      }
+      catch {
+        case e:Throwable => println(s"Something went wrong while deleting $path")
+      }
+    }
+
+    def randInt(min: Int, max: Int): Int = {
+      val rnd = new Random()
+      rnd.nextInt((max - min) + 1) + min
+      }
+     def changePermissions(fileOrDirPath: String): Unit = Seq("chmod", "-R", "755", fileOrDirPath).!
+
+}

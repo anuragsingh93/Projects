@@ -1,0 +1,15 @@
+cassandra_ip = 10.0.10.210
+seeds= 10.0.10.210
+cassandra_keyspace = springpath_springpath_pod
+postgress_url = jdbc:postgresql://127.0.0.1:5432/glassbeam
+user_name = gbp
+password = test123
+post_schName = springpath_pod_stat_data_dashboard
+primary_key=mfr,prod,sch,ec,tbl,stat_dt,stat_ts,subsysid,bundle_id
+mfr=springpath
+prod=springpath
+sch=pod
+period=1
+yr=2016
+ec=springpath
+read-consistency-level=ONE
