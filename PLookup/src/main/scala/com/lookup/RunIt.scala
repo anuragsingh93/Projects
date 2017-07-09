@@ -1,4 +1,4 @@
-package com.glassbeam
+package com.lookup
 import java.io.File
 import com.typesafe.config.ConfigFactory
 import scala.io.Source
