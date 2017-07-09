@@ -8,7 +8,7 @@ import scala.collection.mutable.HashMap
 import org.h2.jdbcx.JdbcConnectionPool
 import com.datastax.driver.core.Cluster
 
-object PTCLookup {
+object PLookup {
   def cassConnect():List[String]={
 var cip = "127.0.0.1"
     var kspace = "ptc_ptc_pod"
