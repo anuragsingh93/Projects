@@ -1,0 +1,18 @@
+Create table user(
+	id Integer AUTO_INCREMENT PRIMARY KEY,
+	firstname varchar(60),
+	lastname varchar(60),
+	creationepoch Long,
+	isactive   varchar(1),
+	lastmodified Long,
+	lastchecked Long
+);
+
+
+Create table message(
+	msgid Integer AUTO_INCREMENT PRIMARY KEY,
+	userid varchar(60),
+	msgts Long,
+	content varchar(360)
+);
+

@@ -8,9 +8,9 @@ class ChatModel @Inject()(db: Database){
 
     val conn=db.getConnection();
 
-  def addUsers(id:Int, firstName:String, lastName:String,creationDate:String,isActive:String="n"): Unit ={
-    //val stmt = conn.createStatement()
-    //stmt.executeUpdate(s"Insert into users(firstname,lastname,creationDate,isactive) values ('$firstName','$lastName','$creationDate','n')")
+  def addUsers(u:User): Unit ={
+    val stmt = conn.createStatement()
+    stmt.executeUpdate(s"Insert into user(id,firstname,lastname,creationepoch,isactive,lastmodified) values (${u.id},'${u.firstname}','${u.lastname}',${u.creationEpoch},'${u.isactive}',${u.lastmodified})")
   }
 
   def getUserDetails() ={
@@ -22,7 +22,7 @@ class ChatModel @Inject()(db: Database){
       while(rs.next()){
        // println(rs.getInt(1))
         //print(" "+rs.getString(2))
-         val a=(rs.getString(2),rs.getString("isActive"))
+         val a=(rs.getString(2),rs.getString("isactive"))
          names +=a
       }
     }
@@ -40,7 +40,7 @@ class ChatModel @Inject()(db: Database){
   def messages(msgid:Int): List[Message] ={
     val lMsg=scala.collection.mutable.ListBuffer[Message]();
     val stmt = conn.createStatement()
-    println("message id "+msgid)
+    //println("message id "+msgid)
     val rs=stmt.executeQuery(s"select * from message where msgid>$msgid")
     while(rs.next()){
 
@@ -49,4 +49,22 @@ class ChatModel @Inject()(db: Database){
     lMsg.toList
   }
 
+  def logout(userid:Int,lastmodified:Long): Unit ={
+    db.withConnection { conn =>
+      val stmt = conn.createStatement()
+      val rs=stmt.executeUpdate(s"update user set isactive='n', lastmodified=$lastmodified where id=$userid")
+    }
+  }
+
+  def getnotify(lastchecked:Long): List[User] ={
+    val lUser=scala.collection.mutable.ListBuffer[User]();
+    val stmt = conn.createStatement()
+    val rs=stmt.executeQuery(s"select * from user where lastmodified>$lastchecked")
+    while(rs.next()){
+      lUser +=User(rs.getInt(1),rs.getString(2),rs.getString(3),rs.getLong(4),rs.getString(5),rs.getLong(6),Option(rs.getLong(7)))
+    }
+    val stmt2 = conn.createStatement()
+    stmt2.executeUpdate(s"update user set lastchecked=$lastchecked")
+    lUser.toList
+  }
 }

@@ -17,7 +17,11 @@ class ChatController @Inject()(ch: ChatModel) extends Controller {
   val userReads: Reads[User] = (
     (JsPath \ "id").read[Int] and
       (JsPath \ "firstname").read[String] and
-      (JsPath \ "lastname").read[String]
+      (JsPath \ "lastname").read[String] and
+      (JsPath \ "creationepoch").read[Long] and
+      (JsPath \ "isactive").read[String] and
+      (JsPath \ "lastmodified").read[Long] and
+      (JsPath \ "lastchecked").readNullable[Long]
     )(User.apply _)
 
   val msgReads: Reads[Message] = (
@@ -54,21 +58,22 @@ class ChatController @Inject()(ch: ChatModel) extends Controller {
     json match {
       case JsError(e) => println(e)
       case JsSuccess(a,p) => println(a, p)
+        ch.addUsers(a)
     }
-    println(json)
+    //println(json)
     val r = Json.toJson("done")
     Ok(r)
     //Ok(views.html.index("loggedin"+id))
   }
 
-  val userform : Form[createUserForm]=Form(
+/*  val userform : Form[createUserForm]=Form(
     mapping(
       "id" -> number,
       "firstname" -> nonEmptyText,
       "lastname" -> text,
       "creationdate" -> nonEmptyText,
       "isActive"  -> text
-    )(createUserForm.apply)(createUserForm.unapply))
+    )(createUserForm.apply)(createUserForm.unapply))*/
 
 
 
@@ -95,7 +100,7 @@ class ChatController @Inject()(ch: ChatModel) extends Controller {
   def getAllUsers=Action{
       val nlist=ch.getUserDetails()
       val json=JsArray(nlist.map(t=> JsObject(Map("firstname"-> JsString(t._1), "isActive" -> JsString(t._2)))))
-      println(json)
+      //println(json)
       Ok(json)
   }
   def insertChat=Action(parse.json) { request =>
@@ -114,6 +119,25 @@ class ChatController @Inject()(ch: ChatModel) extends Controller {
   def getMessages(msgid:Int) =Action{
     val mlist=ch.messages(msgid)
     val json=JsArray(mlist.map(t=> JsObject(Map("msgid"-> JsNumber(t.msgid.get), "userid" -> JsNumber(t.userid),"msgts" ->JsNumber(t.msgts),"content" ->JsString(t.content)))))
+    Ok(json)
+  }
+
+  def logOut()=Action(parse.json){ request =>
+    val jsonString = request.body.toString()
+    val jsonObject = Json.parse(jsonString)
+    val login = jsonObject \ "id"
+    val lcheck = jsonObject \ "lastmodified"
+    val userid=login.as[Int]
+    val lastmodified=lcheck.as[Long]
+    println("Logout Id"+login.as[Int])
+    println("Last Modified"+lastmodified)
+    ch.logout(userid,lastmodified)
+    Ok
+  }
+  def notifyuser(lastchecked:Long) =Action{
+    println("lastchecked "+lastchecked)
+    val ulist=ch.getnotify(lastchecked)
+    val json=JsArray(ulist.map(t=> JsObject(Map("id"-> JsNumber(t.id), "firstname" -> JsString(t.firstname)))))
     Ok(json)
   }
 }

@@ -9,10 +9,8 @@ POST    /logging                    controllers.ChatController.loggingin
 GET     /getusers                   controllers.ChatController.getAllUsers
 POST    /insertchat                 controllers.ChatController.insertChat
 GET     /messages/:msgid            controllers.ChatController.getMessages(msgid:Int)
-# An example controller showing how to use dependency injection
-
-# An example controller showing how to write asynchronous code
-GET     /message                    controllers.AsyncController.message
+PUT     /logout                     controllers.ChatController.logOut
+GET     /notify/:lastchecked        controllers.ChatController.notifyuser(lastchecked:Long)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
